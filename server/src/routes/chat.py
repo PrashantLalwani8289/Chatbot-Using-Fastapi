@@ -40,12 +40,12 @@ async def token_generator(name : str, request: Request):
     )
 
 
-    await json_client.json().set(str(token),Path.root_path(), chat_session.model_dump)
+    await json_client.json().set(str(token),Path.root_path(), chat_session.model_dump())
 
     redis_client = await redis.create_connection()
     await redis_client.expire(str(token), 3600)
 
-    return chat_session
+    return chat_session.model_dump()
 
 
 

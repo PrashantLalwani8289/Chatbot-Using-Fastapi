@@ -11,5 +11,9 @@ class Cache:
 
         return data
     
-    async def add_message_to_cache(self, token: str, message_data:dict ):
+    async def add_message_to_cache(self, token: str, source : str, message_data:dict ):
+        if source == "human":
+            message_data['msg'] = "Human: " + (message_data['msg'])
+        elif source == "bot":
+            message_data['msg'] = "Bot: " + (message_data['msg'])
         await self.json_client.json().arrappend(str(token),Path('.messages'), message_data)
