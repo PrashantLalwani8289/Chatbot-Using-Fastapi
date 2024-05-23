@@ -10,6 +10,8 @@ from ..socket.connection import ConnnectionManager
 from ..socket.utils import get_token
 from ..redis.producer import Producer
 from .. redis.config import Redis
+from ..redis.stream import StreamConsumer
+from ..redis.cache import Cache
 
 # adding the routes to the router
 chat = APIRouter()
@@ -50,8 +52,15 @@ async def token_generator(name : str, request: Request):
 
 
 @chat.post("/refresh_token")
-async def refresh_token(request: Request):
-    return None
+async def refresh_token(request: Request, token: str):
+    json_client = redis.create_rejson_connection()
+    cache = Cache(json_client)
+    data = await cache.get_chat_history(token)
+    if data == None:
+        raise HTTPException(status_code=400, detail="Session Expired or does not exist")
+    else:
+        return data
+
 
 
 
@@ -60,15 +69,32 @@ async def websocket_endpoint(websocket: WebSocket = WebSocket, token:str = Depen
     await manager.connect(websocket)
     redis_client = await redis.create_connection()
     producer = Producer(redis_client)
+    json_client = await redis.create_rejson_connection()
+    consumer = StreamConsumer(redis_client)
     
     try:
         while True:
             data = await websocket.receive_text()
-            print(data)
+            # print(data)
             stream_data = {}
-            stream_data[token] = data
+            stream_data[str(token)] = str(data)
             await producer.add_to_stream(stream_data,"message_channel")
-            await manager.send_personal_message(f"Testing the websocket", websocket)
+            response = await consumer.consume_stream(stream_channel="message_channel")
+
+            print(response)
+
+            for stream, messages in response:
+                for message in messages:
+                    response_token = [k.decode('utf-8') for k,v in message[1].items()][0]
+
+                    if token == response_token:
+                        response_message = [v.decode('utf-8') for k,v in message[1].items()][0]
+                        print(message[0].decode('utf-8'))
+                        print(token)
+                        print(response_token)
+
+                        await manager.send_personal_message(response_message,websocket)
+                    await consumer.delete_message(stream_channel="response_channel")
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
