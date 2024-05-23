@@ -41,7 +41,7 @@ async def main():
 
                     msg = Message(msg = message)
 
-                    data = await cache.add_message_to_cache(token=token)
+                    data = await cache.add_message_to_cache(token=token, source="human", message_data=msg.model_dump())
 
 
                     message_data = data['messages'][-4:]
@@ -50,13 +50,13 @@ async def main():
                     input = " ".join(input)
 
                     # todo
-                    # res = GPT().query(input=input) # todo
-                    # msg = Message(msg = res) # todo
+                    res = GPT().query(input=input) # todo
+                    msg = Message(msg = res) # todo
                     stream_data = {}
                     stream_data[str(token)] = str(msg.model_dump())
                     await producer.add_to_stream(stream_data, "response_channel")
                     # print(msg)  # todo
-                    # await Cache(json_client).add_message_to_cache(token="36259234-e7e7-4bdd-af1a-aa35536447af", source="bot", message_data=msg.model_dump)
+                    await Cache(json_client).add_message_to_cache(token="36259234-e7e7-4bdd-af1a-aa35536447af", source="bot", message_data=msg.model_dump)
 
                 await consumer.delete_message(stream_channel="message_channel", message_id=message_id)
 

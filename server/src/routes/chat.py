@@ -79,7 +79,7 @@ async def websocket_endpoint(websocket: WebSocket = WebSocket, token:str = Depen
             stream_data = {}
             stream_data[str(token)] = str(data)
             await producer.add_to_stream(stream_data,"message_channel")
-            response = await consumer.consume_stream(stream_channel="message_channel")
+            response = await consumer.consume_stream(stream_channel="response_channel",count = 1, block=0)
 
             print(response)
 
@@ -94,7 +94,7 @@ async def websocket_endpoint(websocket: WebSocket = WebSocket, token:str = Depen
                         print(response_token)
 
                         await manager.send_personal_message(response_message,websocket)
-                    await consumer.delete_message(stream_channel="response_channel")
+                    await consumer.delete_message(stream_channel="response_channel",message_id=message[0].decode('utf-8'))
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
